@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101827">
+  <title>QuickTool | Image Compressor</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f5f7fb;
+      --muted: #9aa7bb;
+      --panel: rgba(25, 36, 54, .84);
+      --panel-strong: #202e43;
+      --line: rgba(255, 255, 255, .1);
+      --accent: #5eead4;
+      --accent-strong: #10b981;
+      --warm: #f8c66a;
+      --danger: #fb7185;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 0%, rgba(94, 234, 212, .13), transparent 30%),
+        radial-gradient(circle at 100% 30%, rgba(248, 198, 106, .1), transparent 27%),
+        #101827;
+      font: 15px/1.45 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .shell { width: min(100% - 32px, 560px); margin: 0 auto; padding: 28px 0 40px; }
+    .eyebrow { margin: 0 0 7px; color: var(--accent); font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: clamp(30px, 8vw, 44px); letter-spacing: -.04em; line-height: 1; }
+    .lede { max-width: 410px; margin-top: 12px; color: var(--muted); }
+    .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
+    .badge { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); border-radius: 99px; padding: 8px 11px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .badge::before { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-strong); content: ""; }
+
+    .panel { border: 1px solid var(--line); border-radius: 22px; background: var(--panel); box-shadow: 0 18px 60px rgba(0, 0, 0, .2); backdrop-filter: blur(18px); }
+    .credits { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px; margin-bottom: 14px; }
+    .credit-label { color: var(--muted); font-size: 12px; }
+    .credit-value { margin-top: 2px; font-size: 22px; font-weight: 800; letter-spacing: -.03em; }
+    .credit-actions { display: flex; gap: 8px; }
+    .button { border: 0; border-radius: 12px; padding: 10px 13px; font-size: 12px; font-weight: 800; transition: transform .18s ease, filter .18s ease; }
+    .button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .button:active { transform: translateY(0); }
+    .button:disabled { cursor: wait; opacity: .55; transform: none; }
+    .button-secondary { border: 1px solid var(--line); background: transparent; color: var(--ink); }
+    .button-accent { background: var(--accent); color: #09251f; }
+    .button-warm { background: var(--warm); color: #2c210c; }
+    .button-wide { width: 100%; padding: 14px; font-size: 14px; }
+
+    .tool { padding: 18px; }
+    .tool-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    h2 { font-size: 18px; letter-spacing: -.02em; }
+    .tool-heading span { color: var(--muted); font-size: 11px; }
+    .dropzone { display: grid; place-items: center; min-height: 185px; padding: 22px; border: 1px dashed rgba(94, 234, 212, .55); border-radius: 16px; background: rgba(94, 234, 212, .045); text-align: center; transition: background .2s ease, border-color .2s ease; }
+    .dropzone.is-over { border-color: var(--accent); background: rgba(94, 234, 212, .12); }
+    .drop-icon { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto 12px; border-radius: 14px; background: var(--accent); color: #09251f; font-size: 22px; font-weight: 900; }
+    .drop-title { font-weight: 800; }
+    .drop-hint { margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .file-input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .choose { display: inline-block; margin-top: 14px; color: var(--accent); font-size: 12px; font-weight: 800; }
+    .selected-file { display: none; align-items: center; justify-content: space-between; gap: 12px; margin-top: 13px; padding: 11px 12px; border-radius: 12px; background: var(--panel-strong); }
+    .selected-file.visible { display: flex; }
+    .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
+    .file-size { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .settings { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin: 18px 0; }
+    .label-row { display: flex; justify-content: space-between; margin-bottom: 7px; color: var(--muted); font-size: 12px; }
+    .label-row strong { color: var(--ink); }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    select { border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; background: var(--panel-strong); color: var(--ink); font-size: 12px; }
+    .result { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .result.visible { display: block; }
+    .result-line { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 12px; }
+    .result-line strong { color: var(--accent); }
+    .download { display: block; margin-top: 12px; text-align: center; text-decoration: none; }
+    .notice { min-height: 18px; margin-top: 12px; color: var(--muted); font-size: 12px; text-align: center; }
+    .notice.error { color: var(--danger); }
+    .footer { margin-top: 20px; color: #718097; font-size: 11px; text-align: center; }
+    @media (max-width: 440px) { .topbar { display: block; } .badge { margin-top: 16px; } .credits { align-items: flex-start; } .credit-actions { flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">QuickTool / local utility</p>
+        <h1>Make images lighter.</h1>
+        <p class="lede">Fast, private compression that runs entirely on your device. Nothing is uploaded.</p>
+      </div>
+      <span class="badge">Browser powered</span>
+    </header>
+
+    <section class="panel credits" aria-label="Processing credits">
+      <div><p class="credit-label">Available processing</p><p id="creditCount" class="credit-value">3 credits</p></div>
+      <div class="credit-actions">
+        <button id="adBtn" class="button button-secondary" type="button">Watch ad +3</button>
+        <button id="vipBtn" class="button button-warm" type="button">Get VIP · 50 ★</button>
+      </div>
+    </section>
+
+    <section class="panel tool">
+      <div class="tool-heading"><h2>Image compressor</h2><span>JPG output</span></div>
+      <div id="dropzone" class="dropzone">
+        <div>
+          <div class="drop-icon">↑</div>
+          <p class="drop-title">Drop an image here</p>
+          <p class="drop-hint">PNG, JPG, WEBP up to 25 MB</p>
+          <label class="choose" for="imageInput">Choose a file</label>
+          <input id="imageInput" class="file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+        </div>
+      </div>
+      <div id="selectedFile" class="selected-file"><span id="fileName" class="file-name"></span><span id="fileSize" class="file-size"></span></div>
+
+      <div class="settings">
+        <div><div class="label-row"><span>Compression quality</span><strong id="qualityValue">70%</strong></div><input id="qualityRange" type="range" min="10" max="90" step="5" value="70"></div>
+        <label><span class="label-row">Format</span><select id="formatSelect"><option value="image/jpeg">JPG</option><option value="image/webp">WEBP</option></select></label>
+      </div>
+      <button id="processBtn" class="button button-accent button-wide" type="button">Compress image</button>
+      <p id="notice" class="notice" role="status"></p>
+
+      <div id="result" class="result">
+        <div class="result-line"><span id="sizeComparison"></span><strong id="reduction"></strong></div>
+        <a id="downloadLink" class="button button-accent button-wide download" download>Download compressed image</a>
+      </div>
+    </section>
+    <p class="footer">Your files stay in this browser. QuickTool does not upload or store them.</p>
+  </main>
+
+  <script>
+    const tg = window.Telegram && window.Telegram.WebApp;
+    tg?.ready();
+    tg?.expand();
+
+    // Replace this value after creating a Rewarded Video block in Adsgram.
+    const ADSGRAM_BLOCK_ID = "YOUR_ADSGRAM_BLOCK_ID";
+    // A backend-created XTR invoice link can be supplied by your deployment.
+    const VIP_INVOICE_LINK = window.QUICKTOOL_VIP_INVOICE_LINK || "";
+    const adController = window.Adsgram && ADSGRAM_BLOCK_ID !== "YOUR_ADSGRAM_BLOCK_ID"
+      ? window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID }) : null;
+    let credits = Number.parseInt(localStorage.getItem("quicktool_credits") || "3", 10);
+    let isVip = localStorage.getItem("quicktool_vip") === "true";
+    let selectedFile = null;
+    let resultUrl = null;
+
+    const $ = (id) => document.getElementById(id);
+    const setNotice = (message, isError = false) => { $("notice").textContent = message; $("notice").classList.toggle("error", isError); };
+    const saveState = () => { localStorage.setItem("quicktool_credits", String(credits)); localStorage.setItem("quicktool_vip", String(isVip)); };
+    function updateUI() {
+      $("creditCount").textContent = isVip ? "Unlimited · VIP" : `${credits} credit${credits === 1 ? "" : "s"}`;
+      $("adBtn").hidden = isVip;
+      $("vipBtn").hidden = isVip;
+    }
+    function formatBytes(bytes) { return `${(bytes / 1024 / 1024).toFixed(bytes < 1024 * 1024 ? 1 : 2)} MB`; }
+    function setFile(file) {
+      if (!file) return;
+      if (!file.type.startsWith("image/")) return setNotice("Please choose an image file.", true);
+      if (file.size > 25 * 1024 * 1024) return setNotice("That image is over the 25 MB limit.", true);
+      selectedFile = file;
+      $("fileName").textContent = file.name;
+      $("fileSize").textContent = formatBytes(file.size);
+      $("selectedFile").classList.add("visible");
+      $("result").classList.remove("visible");
+      setNotice("");
+    }
+    $("imageInput").addEventListener("change", (event) => setFile(event.target.files[0]));
+    ["dragenter", "dragover"].forEach((eventName) => $("dropzone").addEventListener(eventName, (event) => { event.preventDefault(); $("dropzone").classList.add("is-over"); }));
+    ["dragleave", "drop"].forEach((eventName) => $("dropzone").addEventListener(eventName, (event) => { event.preventDefault(); $("dropzone").classList.remove("is-over"); }));
+    $("dropzone").addEventListener("drop", (event) => setFile(event.dataTransfer.files[0]));
+    $("qualityRange").addEventListener("input", (event) => { $("qualityValue").textContent = `${event.target.value}%`; });
+
+    $("adBtn").addEventListener("click", async () => {
+      if (!adController) return setNotice("Ads are unavailable in local preview. Add your Adsgram block ID to enable them.", true);
+      $("adBtn").disabled = true;
+      try {
+        await adController.show();
+        credits += 3; saveState(); updateUI(); setNotice("Three credits added.");
+        tg?.HapticFeedback?.notificationOccurred("success");
+      } catch (error) { setNotice("The ad was not completed or no inventory is available.", true); }
+      finally { $("adBtn").disabled = false; }
+    });
+
+    $("vipBtn").addEventListener("click", () => {
+      if (VIP_INVOICE_LINK && tg?.openInvoice) {
+        tg.openInvoice(VIP_INVOICE_LINK, (status) => { if (status === "paid") { isVip = true; saveState(); updateUI(); setNotice("VIP unlocked. Enjoy unlimited processing."); } });
+        return;
+      }
+      const message = "VIP is a one-time 50 Star pass for unlimited, ad-free processing.";
+      if (tg?.showPopup) tg.showPopup({ title: "Unlock VIP", message, buttons: [{ id: "buy", type: "default", text: "Pay 50 Stars" }, { type: "cancel" }] }, (id) => { if (id === "buy") setNotice("Add a backend-created invoice link to accept Stars.", true); });
+      else setNotice("Connect Telegram and a backend-created invoice link to accept Stars.", true);
+    });
+
+    $("processBtn").addEventListener("click", () => {
+      if (!selectedFile) return setNotice("Choose an image first.", true);
+      if (!isVip && credits < 1) return setNotice("No credits left. Watch a rewarded ad to continue.", true);
+      const processButton = $("processBtn");
+      processButton.disabled = true; processButton.textContent = "Compressing..."; setNotice("");
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const image = new Image();
+        image.onload = () => {
+          const canvas = document.createElement("canvas"); canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+          canvas.getContext("2d").drawImage(image, 0, 0);
+          canvas.toBlob((blob) => {
+            if (!blob) { setNotice("This image could not be compressed.", true); processButton.disabled = false; processButton.textContent = "Compress image"; return; }
+            if (resultUrl) URL.revokeObjectURL(resultUrl);
+            resultUrl = URL.createObjectURL(blob);
+            const reduction = Math.max(0, Math.round((1 - blob.size / selectedFile.size) * 100));
+            $("sizeComparison").textContent = `${formatBytes(selectedFile.size)} → ${formatBytes(blob.size)}`;
+            $("reduction").textContent = `${reduction}% smaller`;
+            $("downloadLink").href = resultUrl;
+            $("downloadLink").download = `compressed_${selectedFile.name.replace(/\.[^/.]+$/, "")}.${$("formatSelect").value === "image/webp" ? "webp" : "jpg"}`;
+            $("result").classList.add("visible");
+            if (!isVip) { credits -= 1; saveState(); updateUI(); }
+            setNotice("Done. Your compressed file is ready.");
+            processButton.disabled = false; processButton.textContent = "Compress image";
+          }, $("formatSelect").value, Number($("qualityRange").value) / 100);
+        };
+        image.onerror = () => { setNotice("This image could not be opened.", true); processButton.disabled = false; processButton.textContent = "Compress image"; };
+        image.src = event.target.result;
+      };
+      reader.readAsDataURL(selectedFile);
+    });
+    updateUI();
+  </script>
+</body>
+</html>
